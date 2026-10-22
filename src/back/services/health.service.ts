@@ -1,6 +1,6 @@
 export function verificarSaude() {
   return {
-    status: 'ok',
-    projeto: 'PromoBot PI'
+    status: "ok",
+    projeto: "PromoBot PI",
   };
 }

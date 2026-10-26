@@ -1,59 +1,26 @@
-import { z } from "zod";
+import { listarPromocoes } from "@/back/controllers/promocao.controller";
 
-const PromocaoSchema = z.object({
-    internalName: z.string(),
-    title: z.string(),
-    dealID: z.string(),
-    storeID: z.string(),
-    gameID: z.string(),
-    salePrice: z.string(),
-    normalPrice: z.string(),
-    isOnSale: z.enum(["0", "1"]),
-    savings: z.string(),
-    metacriticScore: z.string(),
-    steamRatingText: z.string(),
-    steamRatingPercent: z.string(),
-    steamRatingCount: z.string(),
-    steamAppID: z.string(),
-    releaseDate: z.number(),
-    lastChange: z.number(),
-    dealRating: z.string(),
-    thumb: z.string(),
-});
+export async function GET(request: Request) {
+    try {
+        const url = new URL(request.url);
 
-const ListaPromocoesResponseSchema = z.array(PromocaoSchema);
+        const promocoes = await listarPromocoes(
+            url.searchParams
+        );
 
-const CHEAPSHARK_API = 
-    "https://www.cheapshark.com/api/1.0";
+        return Response.json(promocoes, {
+            status: 200,
+        });
+    } catch (error) {
+        console.error("Erro ao listar promoções:", error);
 
-     export async function buscarPromocoes(
-        parametros: URLSearchParams = new URLSearchParams
-     ) {
-       const query = parametros.toString();
-       const url = query
-           ? `${CHEAPSHARK_API}/deals?${query}`
-           : `${CHEAPSHARK_API}/deals`;
-
-           const response = await fetch(url);
-
-           if (!response.ok) {
-            throw new Error(
-                `Erro ao consultar a promoção: ${response.status}`
-            );
-           }
-
-           const data: unknown = await response.json();
-           const resultado = 
-                ListaPromocoesResponseSchema.safeParse(data);
-
-            if (!resultado.success) {
-                console.error(
-                    "Resposta inválida da cheapShark:",
-                    "A API retornou promoções em formato inválido."
-                );
+        return Response.json(
+            {
+                error: "Não foi possível buscar promoções.",
+            },
+            {
+                status: 502,
             }
-
-            return resultado.data;
-
-     }
-
+        );
+    }
+}

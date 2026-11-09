@@ -1,7 +1,7 @@
 "use client";
 
-import type { Game } from "../services/games.mock";
-import { brl, discountPercent } from "../services/games.mock";
+import type { Game } from "../services/games";
+import { money, discountPercent } from "../services/games";
 import { anton } from "../fonts";
 
 type Props = {
@@ -31,10 +31,10 @@ export default function GameCard({ game, onSelect, featured = false }: Props) {
           <h3 className={`${anton.className} mb-2 text-lg text-white`}>{game.title}</h3>
           <div className="flex items-center gap-2">
             <span className="rounded border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
-              -{discount}%
+              {game.source === "free" ? "Grátis" : game.originalPrice === null ? "Brasil · R$" : `-${discount}%`}
             </span>
             <span className={`${anton.className} text-base text-white`}>
-              {brl(game.promotionalPrice)}
+              {game.source === "free" ? "Grátis" : money(game.promotionalPrice, game.currency)}
             </span>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function GameCard({ game, onSelect, featured = false }: Props) {
           {game.genre}
         </span>
         <span className="absolute right-2 top-2 rounded border border-emerald-400/20 bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-400">
-          -{discount}%
+          {game.source === "free" ? "Grátis" : game.originalPrice === null ? "Brasil · R$" : `-${discount}%`}
         </span>
       </div>
 
@@ -65,8 +65,8 @@ export default function GameCard({ game, onSelect, featured = false }: Props) {
           {game.title}
         </h3>
         <div className="mt-2 flex items-center gap-1 text-[13px]">
-          <span className="tracking-[2px] text-amber-400" aria-label="Avaliação ilustrativa">★★★★★</span>
-          <span className="text-[11px] text-[#929cab]">{game.rating.toFixed(1)}</span>
+          <span className="tracking-[2px] text-amber-400" aria-label="Avaliação Steam">PC</span>
+          <span className="text-[11px] text-[#929cab]">{game.rating?.toFixed(1) ?? "Sem avaliação"}</span>
         </div>
         <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-[#98a2b5]">
           {game.description}
@@ -74,14 +74,14 @@ export default function GameCard({ game, onSelect, featured = false }: Props) {
         <div className="mt-3 border-t border-[#293040] pt-3">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <p className="text-[11px] text-[#647084] line-through">{brl(game.originalPrice)}</p>
+              {game.originalPrice !== null && <p className="text-[11px] text-[#647084] line-through">{money(game.originalPrice, game.currency)}</p>}
               <p className={`${anton.className} mt-0.5 text-xl text-white`}>
-                {brl(game.promotionalPrice)}
+                {game.source === "free" ? "Grátis" : money(game.promotionalPrice, game.currency)}
               </p>
             </div>
             <div className="text-right text-[11px] leading-5 text-[#9ca8bc]">
-              <p>na {game.store}</p>
-              <p>{game.offers.length} lojas</p>
+              <p>{(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") ? "via GG.deals" : game.source === "free" ? "via GamerPower" : `na ${game.store}`}</p>
+              <p>{(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") ? "Lojas oficiais" : game.source === "free" ? "Confira as condições" : `${game.offers.length} lojas nesta consulta`}</p>
             </div>
           </div>
         </div>

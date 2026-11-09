@@ -3,14 +3,14 @@
 import { useState } from "react";
 import GameCard from "./GameCard";
 import GameModal from "./GameModal";
-import { useGames } from "../hooks/useGames";
-import type { Game } from "../services/games.mock";
-import { discountPercent } from "../services/games.mock";
+
+import { gameKey, type Game, type CatalogSource } from "../services/games";
+import { discountPercent } from "../services/games";
 import { anton } from "../fonts";
 
-type SortOption = "discount" | "lowest-price" | "highest-price" | "name";
+type SortOption = "mixed" | "discount" | "lowest-price" | "highest-price" | "name";
 
-type Props = { search: string };
+type Props = { games: Game[]; loading: boolean; error: string | null; retry: () => void; source: CatalogSource; hasMore: boolean; loadingMore: boolean; omitted: number; warnings: string[]; loadMore: () => void };
 
 const buttonBase =
   "rounded-lg border px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-purple-400";
@@ -20,26 +20,26 @@ const inactive =
 const normalize = (value: string) =>
   value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-export default function GameList({ search }: Props) {
-  const { games, loading } = useGames();
+export default function GameList({ games, loading, error, retry, source, hasMore, loadingMore, omitted, warnings, loadMore }: Props) {
+
   const [selectedStore, setSelectedStore] = useState("Todas");
   const [selectedGenre, setSelectedGenre] = useState("Todos");
   const [minDiscount, setMinDiscount] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>("discount");
+  const [sortBy, setSortBy] = useState<SortOption>(source === "all" ? "mixed" : ["br","free"].includes(source) ? "lowest-price" : "discount");
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
-  const stores = ["Todas", "Steam", "Epic Games", "GOG", "Nuvem", "Rockstar"]
+  const stores = ["Todas", ...new Set(games.flatMap(game => game.offers.map(offer => offer.store)))]
     .filter((store) => store === "Todas" || games.some((game) => game.offers.some((offer) => offer.store === store)));
-  const genres = ["Todos", "RPG", "Ação", "Aventura", "Plataforma", "Simulação", "Roguelike"]
+  const genres = ["Todos", ...new Set(games.map(game => game.genre))]
     .filter((genre) => genre === "Todos" || games.some((game) => game.genre === genre));
 
-  const featured = games
-    .filter((game) => game.featuredRank)
-    .sort((a, b) => (a.featuredRank ?? 0) - (b.featuredRank ?? 0));
+  const featured = ["br","free"].includes(source) ? games.slice(0, 3) : games
+    .filter(game => game.originalPrice !== null && game.originalPrice > game.promotionalPrice)
+    .sort((a,b) => discountPercent(b.originalPrice,b.promotionalPrice)-discountPercent(a.originalPrice,a.promotionalPrice)).slice(0,3);
 
   const filteredGames = games
     .filter((game) => {
-      const term = normalize(search.trim());
+      const term = "";
       const matchesSearch = !term || normalize([
         game.title,
         game.genre,
@@ -53,6 +53,7 @@ export default function GameList({ search }: Props) {
       return matchesSearch && matchesStore && matchesGenre && matchesDiscount;
     })
     .sort((a, b) => {
+      if (sortBy === "mixed") return 0;
       if (sortBy === "lowest-price") return a.promotionalPrice - b.promotionalPrice;
       if (sortBy === "highest-price") return b.promotionalPrice - a.promotionalPrice;
       if (sortBy === "name") return a.title.localeCompare(b.title);
@@ -62,12 +63,20 @@ export default function GameList({ search }: Props) {
 
   return (
     <>
+      {warnings.length > 0 && <div role="status" className="mx-auto max-w-[1280px] px-6 pt-6 text-sm text-amber-300">{warnings.map(message=><p key={message}>{message}</p>)}</div>}
+      {error && <div role="alert" className="mx-auto max-w-[1280px] p-6 text-center"><p>{error}</p><button type="button" onClick={retry} className="mt-3 rounded bg-purple-600 px-4 py-2">Tentar novamente</button></div>}
+      {source === "all" ? <p className="mx-auto max-w-[1280px] px-6 pt-6 text-sm text-slate-400">Promoções da <a className="underline" href="https://store.steampowered.com/" target="_blank" rel="noopener noreferrer">Steam</a>, preços brasileiros via <a className="underline" href="https://gg.deals/" target="_blank" rel="noopener noreferrer">GG.deals</a> e resgates grátis via <a className="underline" href="https://www.gamerpower.com/" target="_blank" rel="noopener noreferrer">GamerPower</a>. Descoberta adicional: <a className="underline" href="https://www.cheapshark.com/" target="_blank" rel="noopener noreferrer">CheapShark</a>. Preços GG.deals podem não estar em promoção; o percentual aparece apenas quando a fonte fornece preço original. Filtros e ordenação se aplicam aos resultados carregados.</p> : (<p className="mx-auto max-w-[1280px] px-6 pt-6 text-sm text-slate-400">
+        {source === "steam" ? "Promoções da loja Steam no Brasil, com preços em reais." : source === "free" ? "Jogos para resgatar grátis. Confira prazo, plataforma e disponibilidade regional na página da oferta." : source === "br" ? "Menores preços regionais de lojas oficiais monitoradas. A fonte não informa se o preço brasileiro está em promoção." : "Ofertas internacionais em USD, sem conversão para reais."}
+        {" Fonte: "}<a href={source === "steam" ? "https://store.steampowered.com/" : source === "free" ? "https://www.gamerpower.com/" : source === "br" ? "https://gg.deals/" : "https://www.cheapshark.com/"} target="_blank" rel="noopener noreferrer" className="underline">{source === "steam" ? "Steam" : source === "free" ? "GamerPower" : source === "br" ? "GG.deals" : "CheapShark"}</a>.
+        {source === "br" && <> Descoberta de jogos: <a href="https://www.cheapshark.com/" className="underline" target="_blank" rel="noopener noreferrer">CheapShark</a>.</>}
+        {" Filtros e ordenação se aplicam aos resultados carregados."}
+      </p>)}
       <section className="mx-auto max-w-[1280px] px-4 pt-12 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <span className="h-6 w-1 rounded bg-[#ec2388]" />
-          <h2 className={`${anton.className} text-[23px] text-white`}>MELHORES OFERTAS</h2>
+          <h2 className={`${anton.className} text-[23px] text-white`}>{source === "all" ? "MELHORES OFERTAS DO CATÁLOGO" : source === "br" ? "PREÇOS NO BRASIL" : source === "free" ? "JOGOS GRÁTIS" : source === "steam" ? "PROMOÇÕES DA STEAM" : "MELHORES OFERTAS"}</h2>
           <span className="rounded border border-pink-500/25 bg-pink-500/10 px-2.5 py-1 text-sm font-bold text-[#ec2388]">
-            70%+ off
+            {source === "all" ? "Várias fontes · R$" : source === "br" ? "Lojas oficiais · R$" : source === "free" ? "Resgate por tempo limitado" : source === "steam" ? "Preços em R$" : "70%+ off"}
           </span>
         </div>
         {loading ? (
@@ -75,7 +84,7 @@ export default function GameList({ search }: Props) {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((game) => (
-              <GameCard key={game.id} game={game} onSelect={setSelectedGame} featured />
+              <GameCard key={gameKey(game)} game={game} onSelect={setSelectedGame} featured />
             ))}
           </div>
         )}
@@ -94,7 +103,7 @@ export default function GameList({ search }: Props) {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex-1 space-y-2.5">
               <div className="flex flex-wrap gap-1.5">
-                {stores.map((store) => (
+                {(["br","free"].includes(source) ? [] : stores).map((store) => (
                   <button
                     key={store}
                     type="button"
@@ -125,7 +134,7 @@ export default function GameList({ search }: Props) {
                   </button>
                 ))}
                 <span className="mx-1 hidden h-5 w-px bg-[#303647] lg:inline-block" />
-                {[0, 25, 50, 70, 80].map((discount) => (
+                {(["br","free"].includes(source) ? [] : [0, 25, 50, 70, 80]).map((discount) => (
                   <button
                     key={discount}
                     type="button"
@@ -149,7 +158,8 @@ export default function GameList({ search }: Props) {
                 onChange={(event) => setSortBy(event.target.value as SortOption)}
                 className="h-[68px] w-full rounded-lg border border-[#293040] bg-[#222837] px-3 text-xs text-[#a4b0c6] outline-none focus:border-purple-500 xl:h-[68px]"
               >
-                <option value="discount">Maior desconto</option>
+                {source === "all" && <option value="mixed">Fontes variadas</option>}
+                {["all","usd","steam"].includes(source) && <option value="discount">Maior desconto</option>}
                 <option value="lowest-price">Menor preço</option>
                 <option value="highest-price">Maior preço</option>
                 <option value="name">Nome A-Z</option>
@@ -160,19 +170,24 @@ export default function GameList({ search }: Props) {
 
         {loading ? (
           <p className="py-12 text-center text-[#98a2b5]">Carregando jogos...</p>
-        ) : filteredGames.length === 0 ? (
+        ) : error ? null : filteredGames.length === 0 ? (
           <p className="py-12 text-center text-[#98a2b5]">
             Nenhum jogo encontrado com esses filtros.
           </p>
         ) : (
           <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredGames.map((game) => (
-              <GameCard key={game.id} game={game} onSelect={setSelectedGame} />
+              <GameCard key={gameKey(game)} game={game} onSelect={setSelectedGame} />
             ))}
           </div>
         )}
       </section>
 
+      <div className="mx-auto max-w-[1280px] px-6 py-8 text-center">
+        {source === "br" && omitted > 0 && <p className="mb-4 text-sm text-slate-400">Alguns resultados foram omitidos por não terem identificação Steam ou preço BRL em lojas oficiais. Você pode carregar a próxima página.</p>}
+        {hasMore && <button type="button" disabled={loading || loadingMore} onClick={loadMore} className="rounded-lg bg-purple-600 px-6 py-3 text-white disabled:opacity-50">{loadingMore ? "Carregando..." : "Carregar mais jogos"}</button>}
+        {!loading && !hasMore && !error && <p className="text-sm text-slate-400">Fim dos resultados desta busca.</p>}
+      </div>
       <GameModal game={selectedGame} onClose={() => setSelectedGame(null)} />
     </>
   );

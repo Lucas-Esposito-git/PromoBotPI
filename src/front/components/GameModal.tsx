@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import type { Game } from "../services/games.mock";
-import { brl, discountPercent } from "../services/games.mock";
+import type { Game } from "../services/games";
+import { money, discountPercent } from "../services/games";
 import { anton } from "../fonts";
 
 type Props = { game: Game | null; onClose: () => void };
@@ -64,15 +64,15 @@ export default function GameModal({ game, onClose }: Props) {
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="rounded bg-purple-500/25 px-2 py-1 text-xs text-purple-300">{game.genre}</span>
               <span className="rounded border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
-                -{discount}%
+                {game.source === "free" ? "Grátis" : game.originalPrice === null ? "Brasil · R$" : `-${discount}%`}
               </span>
             </div>
             <h2 id="game-modal-title" className={`${anton.className} text-2xl text-white sm:text-[27px]`}>
               {game.title}
             </h2>
             <div className="mt-1 flex items-center gap-2 text-xs">
-              <span className="tracking-[2px] text-amber-400">★★★★★</span>
-              <span className="text-[#9ca5b4]">{game.rating.toFixed(1)}</span>
+              <span className="tracking-[2px] text-amber-400">PC</span>
+              <span className="text-[#9ca5b4]">{game.rating?.toFixed(1) ?? "Sem avaliação"}</span>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function GameModal({ game, onClose }: Props) {
           </div>
           <p className="text-[13px] leading-6 text-[#9ca5b2]">{game.description}</p>
           <h3 className="mt-6 mb-3 text-sm font-bold tracking-[2px] text-[#626c7e]">
-            COMPARAR PREÇOS
+            {(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") ? "PREÇO BRASIL · GG.DEALS" : game.source === "free" ? "RESGATAR JOGO GRÁTIS" : "COMPARAR PREÇOS"}
           </h3>
           <div className="space-y-2">
             {offers.map((offer, index) => (
@@ -106,17 +106,17 @@ export default function GameModal({ game, onClose }: Props) {
                     <strong className="text-sm text-[#d8dce4]">{offer.store}</strong>
                     {index === 0 && (
                       <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-400">
-                        Melhor preço
+                        {(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") ? "Menor monitorado" : game.source === "free" ? "Grátis" : "Menor nesta consulta"}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[#667185] line-through">{brl(offer.originalPrice)}</p>
+                  {offer.originalPrice !== null && <p className="text-[11px] text-[#667185] line-through">{money(offer.originalPrice, game.currency)}</p>}
                 </div>
                 <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-400">
-                  -{discountPercent(offer.originalPrice, offer.price)}%
+                  {game.source === "free" ? "Grátis" : offer.originalPrice === null ? "BRL" : `-${discountPercent(offer.originalPrice, offer.price)}%`}
                 </span>
                 <strong className={`${anton.className} min-w-[70px] text-right text-base ${index === 0 ? "text-emerald-400" : "text-white"}`}>
-                  {brl(offer.price)}
+                  {game.source === "free" ? "Grátis" : money(offer.price, game.currency)}
                 </strong>
                 <a
                   href={offer.url}
@@ -124,13 +124,15 @@ export default function GameModal({ game, onClose }: Props) {
                   rel="noopener noreferrer"
                   className="rounded-lg bg-[#8538ed] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#9b4cff]"
                 >
-                  Comprar
+                  {(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") ? "Ver lojas" : game.source === "free" ? "Resgatar" : "Comprar"}
                 </a>
               </div>
             ))}
           </div>
+          {(game.source !== "free" && game.originalPrice === null && game.currency === "BRL") && game.historicalLow != null && <p className="mt-4 text-sm text-slate-300">Menor preço histórico em lojas oficiais: {money(game.historicalLow, "BRL")}</p>}
+          <a className="mt-4 inline-block text-sm text-purple-400 underline" href={game.source === "steam" ? "https://store.steampowered.com/" : game.source === "free" ? "https://www.gamerpower.com/" : game.currency === "BRL" ? "https://gg.deals/" : "https://www.cheapshark.com/"} target="_blank" rel="noopener noreferrer">Fonte: {game.source === "steam" ? "Steam" : game.source === "free" ? "GamerPower" : game.currency === "BRL" ? "GG.deals" : "CheapShark"}</a>
           <p className="mt-4 text-[11px] text-[#6f798a]">
-            Preços e avaliações ilustrativos (projeto acadêmico). Confira os valores reais na loja.
+            {game.source === "steam" ? "Preço da loja Steam brasileira. Confira o preço atual na loja antes de comprar." : game.source === "free" ? "Confira o prazo, as instruções e as condições regionais para resgatar na página da oferta. O valor de referência em dólares da GamerPower não é tratado como preço brasileiro." : game.currency === "BRL" ? "Preço regional em BRL da GG.deals, com cache de até 1 hora. O endpoint não identifica a loja nem o desconto. Confira no comparador." : "Preços em USD via CheapShark. Comparação limitada às ofertas carregadas."}
           </p>
         </div>
       </section>

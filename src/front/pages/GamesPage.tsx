@@ -2,23 +2,19 @@
 
 import { useState } from "react";
 import GameList from "../components/GameList";
-import { mockGames, discountPercent } from "../services/games.mock";
+import type { CatalogSource } from "../services/games";
+import { discountPercent } from "../services/games";
+import { useGames } from "../hooks/useGames";
 import { anton } from "../fonts";
 import Image from "next/image";
 
-const storeCount = new Set(
-  mockGames.flatMap((game) => game.offers.map((offer) => offer.store)),
-).size;
-const averageDiscount = Math.floor(
-  mockGames.reduce(
-    (sum, game) =>
-      sum + discountPercent(game.originalPrice, game.promotionalPrice),
-    0,
-  ) / mockGames.length,
-);
-
 export default function GamesPage() {
   const [search, setSearch] = useState("");
+
+  const [source, setSource] = useState<CatalogSource>("all");
+  const { games, loading, loadingMore, error, retry, hasMore, omitted, warnings, loadMore } = useGames(search, source);
+  const storeCount = new Set(games.flatMap(game => game.offers.map(offer => offer.store))).size;
+  const averageDiscount = games.length ? Math.floor(games.reduce((sum, game) => sum + discountPercent(game.originalPrice, game.promotionalPrice), 0) / games.length) : 0;
 
   return (
     <main className="min-h-screen bg-[#0e1117] font-sans text-white">
@@ -26,7 +22,7 @@ export default function GamesPage() {
         <div className="mx-auto grid max-w-[1280px] gap-4 px-4 py-3 sm:px-6 md:grid-cols-[1fr_minmax(280px,575px)_1fr] md:items-center">
           <a href="#inicio" className="flex w-fit items-center gap-2">
             <Image
-              src="/promobot.png"
+              src="/games/promobot.png"
               alt="Robô PromoBot"
               width={32}
               height={32}
@@ -51,7 +47,7 @@ export default function GamesPage() {
             <input
               type="search"
               aria-label="Pesquisar jogos"
-              placeholder="Pesquisar jogos, gêneros, plataformas..."
+              placeholder="Pesquisar jogos..."
               className="min-w-0 flex-1 bg-transparent text-sm text-[#e6e7eb] outline-none placeholder:text-[#818895]"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -99,33 +95,34 @@ export default function GamesPage() {
           <div className="mt-20 flex flex-wrap items-center gap-8 border-t border-[#323044]/70 py-7 sm:gap-12">
             <p className="flex items-center gap-3">
               <span className={`${anton.className} text-[28px] text-[#a855f7]`}>
-                {mockGames.length}
+                {loading ? "…" : games.length}
               </span>
-              <span className="text-sm text-[#778198]">Jogos catalogados</span>
+              <span className="text-sm text-[#778198]">Jogos nesta consulta</span>
             </p>
             <p className="flex items-center gap-3">
               <span className={`${anton.className} text-[28px] text-[#31d0a0]`}>
-                {storeCount}
+                {source === "all" ? "Várias" : source === "br" ? "GG.deals" : source === "free" ? "Grátis" : source === "steam" ? "Steam" : loading ? "…" : storeCount}
               </span>
-              <span className="text-sm text-[#778198]">Lojas integradas*</span>
+              <span className="text-sm text-[#778198]">{source === "all" ? "Fontes de ofertas" : source === "br" ? "Fonte dos preços BR" : source === "free" ? "Resgates disponíveis" : source === "steam" ? "Loja brasileira" : "Lojas nos resultados"}</span>
             </p>
             <p className="flex items-center gap-3">
               <span className={`${anton.className} text-[28px] text-[#ec2388]`}>
-                {averageDiscount}%
+                {["all","br","free"].includes(source) ? "BRL" : loading ? "…" : `${averageDiscount}%`}
               </span>
-              <span className="text-sm text-[#778198]">Desconto médio*</span>
+              <span className="text-sm text-[#778198]">{["all","br","free"].includes(source) ? "Moeda brasileira" : "Desconto médio"}</span>
             </p>
           </div>
         </div>
       </section>
 
-      <GameList search={search} />
+      <div className="mx-auto max-w-[1280px] px-6 pt-8"><label htmlFor="price-region" className="mr-3 text-sm text-slate-300">Preços</label><select id="price-region" value={source} onChange={event => setSource(event.target.value as CatalogSource)} className="rounded-lg border border-slate-700 bg-[#222837] p-3 text-sm"><option value="all">Todas as fontes · Brasil + grátis</option><option value="steam">Steam · Promoções em R$</option><option value="free">Jogos grátis · GamerPower</option><option value="br">Brasil · R$ (GG.deals)</option><option value="usd">Internacional · USD (CheapShark)</option></select></div>
+      <GameList key={`${source}:${search}`} games={games} loading={loading} error={error} retry={retry} source={source} hasMore={hasMore} loadingMore={loadingMore} omitted={omitted} warnings={warnings} loadMore={loadMore} />
 
       <footer className="mt-16 border-t border-[#262c3a] bg-[#191d24]">
         <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-4 py-9 text-center sm:px-6 md:flex-row md:items-center md:justify-between md:text-left">
           <div className="flex items-center justify-center gap-2 md:justify-start">
             <Image
-              src="/promobot.png"
+              src="/games/promobot.png"
               alt="Robô PromoBot"
               width={32}
               height={32}

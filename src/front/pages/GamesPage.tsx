@@ -124,15 +124,19 @@ export default function GamesPage() {
       <footer className="mt-16 border-t border-[#262c3a] bg-[#191d24]">
         <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-4 py-9 text-center sm:px-6 md:flex-row md:items-center md:justify-between md:text-left">
           <div className="flex items-center justify-center gap-2 md:justify-start">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-600 text-xs font-bold">
-              P
-            </span>
+            <Image
+              src="/promobot.png"
+              alt="Robô PromoBot"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <strong className={`${anton.className} text-base`}>
               Promo<span className="text-[#a855f7]">Bot</span>
             </strong>
           </div>
           <div className="text-xs leading-5 text-[#606a80]">
-            <p>Lucas Gabriel · Filipe Estevão · Lucas André · Marco Túlio</p>
+            <p>Lucas Esposito · Filipe Estevão · Lucas André · Marco Túlio</p>
             <p>FACULDADE SENAI FATESG · ADS · Goiânia, 2026</p>
           </div>
         </div>

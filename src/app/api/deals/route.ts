@@ -1,8 +1,9 @@
 import { listarPromocoes } from "@/back/controllers/promocao.controller";
 
 export async function GET(request: Request) {
+    const url = new URL(request.url);
+    
     try {
-        const url = new URL(request.url);
 
         const promocoes = await listarPromocoes(
             url.searchParams

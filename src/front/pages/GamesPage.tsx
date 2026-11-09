@@ -70,7 +70,7 @@ export default function GamesPage() {
         <div className="relative mx-auto max-w-[1280px] px-4 pt-20 sm:px-6 sm:pt-24">
           <span className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-[11px] font-bold text-[#bd6aff]">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            PROJETO PI — SENAI FATESG
+            COMPRE JOGOS PELO MELHOR PREÇO
           </span>
 
           <h1
